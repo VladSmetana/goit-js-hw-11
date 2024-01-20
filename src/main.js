@@ -6,7 +6,7 @@ import "izitoast/dist/css/iziToast.min.css";
 import SimpleLightbox from "simplelightbox";
 // Додатковий імпорт стилів
 import "simplelightbox/dist/simple-lightbox.min.css";
-import "css-loader";
+
 
 const API_KEY = "41919637-6a9ae3694a8b7e5cab5cbae88";
 const BASE_URL = "https://pixabay.com/api/";
