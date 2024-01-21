@@ -1,79 +1,83 @@
-// Описаний у документації
-import iziToast from "izitoast";
-// Додатковий імпорт стилів
-import "izitoast/dist/css/iziToast.min.css";
-// Описаний у документації
-import SimpleLightbox from "simplelightbox";
-// Додатковий імпорт стилів
-import "simplelightbox/dist/simple-lightbox.min.css";
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
+const form = document.querySelector('.form');
+const gallery = document.querySelector('.gallery');
+const galleryBox = document.querySelector('.gallery-box');
+const loader = document.querySelector('.loader');
+const input = document.querySelector('input');
 
-const API_KEY = "41919637-6a9ae3694a8b7e5cab5cbae88";
-const BASE_URL = "https://pixabay.com/api/";
-const galleryElement = document.getElementById("gallery");
-const loaderElement = document.getElementById("loader");
+const searchParamsDefaults = {
+  key: '41919637-6a9ae3694a8b7e5cab5cbae88',
+  q: 'cat',
+  image_type: 'photo',
+  orientation: 'horizontal',
+  safesearch: true,
+};
 
-let lightbox;
+const lightbox = new SimpleLightbox('.gallery a', {
+  nav: true,
+  captionDelay: 250,
+  captionsData: 'alt',
+  close: true,
+  enableKeyboard: true,
+  docClose: true,
+});
 
-function showLoader() {
-  loaderElement.style.display = "block";
+function searchImg(params) {
+  return fetch(`https://pixabay.com/api/?${params}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return response.json();
+    })
+    .then(({ hits }) => {
+      if (hits.length > 0) {
+        const renderImg = hits.reduce((html, hit) => {
+          return (
+            html +
+            `<li class="gallery-item">
+        <a href=${hit.largeImageURL}>
+          <img class="gallery-img" src =${hit.webformatURL} alt=${hit.tags}/>
+        </a>
+        <div class="gallery-text-box">
+          <p>Likes: <span class="text-value">${hit.likes}</span></p>
+          <p>views: <span class="text-value">${hit.views}</span></p>
+          <p>comments: <span class="text-value">${hit.comments}</span></p>
+          <p>downloads: <span class="text-value">${hit.downloads}</span></p>
+      </div>
+      </li>`
+          );
+        }, '');
+
+        gallery.innerHTML = renderImg;
+
+        lightbox.refresh();
+      } else {
+        iziToast.error({
+          position: 'topRight',
+          message:
+            'Sorry, there are no images matching your search query. Please try again!',
+        });
+      }
+    })
+    .catch(error => {
+      console.log(error.message);
+    })
+    .finally(() => {
+      loader.style.display = 'none';
+    });
 }
 
-function hideLoader() {
-  loaderElement.style.display = "none";
-}
-
-function displayImages(images) {
-  galleryElement.innerHTML = ""; // Очищення галереї перед відображенням нових зображень
-
-  images.forEach((image) => {
-    const imgElement = document.createElement("img");
-    imgElement.src = image.webformatURL;
-    imgElement.alt = image.tags;
-    imgElement.addEventListener("click", () => openLightbox(image.largeImageURL));
-    galleryElement.appendChild(imgElement);
-  });
-
-  // Оновлення SimpleLightbox галереї
-  lightbox.refresh();
-}
-
-function openLightbox(imageURL) {
-  lightbox.open({ items: [{ src: imageURL }] });
-}
-
-function showMessage(message) {
-  iziToast.show({
-    title: "Info",
-    message: message,
-    position: "topCenter",
-    timeout: 3000,
-  });
-}
-
-async function searchImages(query) {
-  showLoader();
-
-  try {
-    const response = await fetch(
-      `${BASE_URL}?key=${API_KEY}&q=${query}&image_type=photo&orientation=horizontal&safesearch=true`
-    );
-    const data = await response.json();
-
-    if (data.hits && data.hits.length > 0) {
-      displayImages(data.hits);
-    } else {
-      showMessage("Sorry, there are no images matching your search query. Please try again!");
-    }
-  } catch (error) {
-    showMessage("An error occurred while fetching images. Please try again later.");
-  } finally {
-    hideLoader();
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  lightbox = new SimpleLightbox("#gallery a");
-
-
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  gallery.innerHTML = '';
+  loader.style.display = 'block';
+  searchParamsDefaults.q = event.target.elements.search.value.trim();
+  const searchParams = new URLSearchParams(searchParamsDefaults);
+  searchImg(searchParams);
+  event.currentTarget.reset();
 });
